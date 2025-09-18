@@ -47,11 +47,12 @@ export async function POST() {
 			fileSize: audioBuffer.byteLength 
 		});
 		
-	} catch (err: any) {
-		console.error("Audio test error:", err);
+	} catch (err: unknown) {
+		const error = err as Error;
+		console.error("Audio test error:", error);
 		return NextResponse.json({ 
-			error: err?.message,
-			stack: err?.stack 
+			error: error?.message,
+			stack: error?.stack 
 		}, { status: 500 });
 	}
 }

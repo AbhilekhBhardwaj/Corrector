@@ -116,7 +116,7 @@ async function resolveMediaFromPage(url: string): Promise<{ type: "video" | "ima
 async function transcribeAudio(file: File | Blob) {
 	try {
 		console.log("File details:", {
-			name: file.name,
+			name: file instanceof File ? file.name : "unknown",
 			size: file.size,
 			type: file.type
 		});
@@ -149,9 +149,10 @@ async function transcribeAudio(file: File | Blob) {
 		const transcript = await response.text();
 		console.log("Transcription successful, length:", transcript.length);
 		return transcript.trim();
-	} catch (err: any) {
-		console.error("Transcription error:", err);
-		throw new Error(`Transcription failed: ${err.message}`);
+	} catch (err: unknown) {
+		const error = err as Error;
+		console.error("Transcription error:", error);
+		throw new Error(`Transcription failed: ${error.message}`);
 	}
 }
 
@@ -213,7 +214,6 @@ export async function POST(req: Request) {
 
 		const u = new URL(url);
 		const isYouTube = u.hostname.includes("youtube.com") || u.hostname.includes("youtu.be");
-		const isYouTubeShorts = u.pathname.includes("/shorts/");
 
 		let transcript: string | null = null;
 		let ocrText: string | null = null;
@@ -230,9 +230,10 @@ export async function POST(req: Request) {
 				console.log("Transcription complete, starting analysis");
 				analysis = await analyzeTextClaim(transcript, url);
 				console.log("Analysis complete");
-			} catch (err: any) {
-				console.error("YouTube processing error:", err);
-				if (err.message?.includes("Video unavailable") || err.message?.includes("Private video")) {
+			} catch (err: unknown) {
+				const error = err as Error;
+				console.error("YouTube processing error:", error);
+				if (error.message?.includes("Video unavailable") || error.message?.includes("Private video")) {
 					return NextResponse.json({ error: "Video is unavailable or private" }, { status: 400 });
 				}
 				// Fallback to video metadata if audio fails
@@ -243,7 +244,7 @@ export async function POST(req: Request) {
 					
 					transcript = `Video Title: ${title}\n\nDescription: ${description}\n\nNote: Audio transcription failed, analyzing title and description only.`;
 					analysis = await analyzeTextClaim(transcript, url);
-				} catch (fallbackErr) {
+				} catch {
 					transcript = "Unable to process this YouTube video. The content may contain claims that require verification.";
 					analysis = await analyzeTextClaim(transcript, url);
 				}
@@ -279,8 +280,9 @@ export async function POST(req: Request) {
 			ocrText,
 			analysis,
 		});
-	} catch (err: any) {
-		console.error("/api/analyze error", err?.response?.data || err);
-		return NextResponse.json({ error: err?.message ?? "Unknown error", detail: err?.response?.data, stack: process.env.NODE_ENV !== "production" ? err?.stack : undefined }, { status: 500 });
+	} catch (err: unknown) {
+		const error = err as Error;
+		console.error("/api/analyze error", error);
+		return NextResponse.json({ error: error?.message ?? "Unknown error", stack: process.env.NODE_ENV !== "production" ? error?.stack : undefined }, { status: 500 });
 	}
 }

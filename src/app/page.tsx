@@ -6,7 +6,12 @@ export default function Home() {
 	const [url, setUrl] = useState("");
 	const [loading, setLoading] = useState(false);
 	const [error, setError] = useState<string | null>(null);
-	const [result, setResult] = useState<any>(null);
+	const [result, setResult] = useState<{
+		source: string;
+		transcript?: string | null;
+		ocrText?: string | null;
+		analysis?: string | null;
+	} | null>(null);
 
 	async function onSubmit(e: React.FormEvent) {
 		e.preventDefault();
@@ -22,8 +27,9 @@ export default function Home() {
 			const data = await res.json();
 			if (!res.ok) throw new Error(data.error || "Failed to analyze");
 			setResult(data);
-		} catch (err: any) {
-			setError(err?.message || "Unknown error");
+		} catch (err: unknown) {
+			const error = err as Error;
+			setError(error?.message || "Unknown error");
 		} finally {
 			setLoading(false);
 		}

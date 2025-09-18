@@ -21,12 +21,12 @@ export async function GET() {
 			success: true, 
 			response: res.choices[0]?.message?.content 
 		});
-	} catch (err: any) {
-		console.error("Test error:", err);
+	} catch (err: unknown) {
+		const error = err as Error;
+		console.error("Test error:", error);
 		return NextResponse.json({ 
-			error: err?.message, 
-			detail: err?.response?.data,
-			stack: err?.stack 
+			error: error?.message, 
+			stack: error?.stack 
 		}, { status: 500 });
 	}
 }
